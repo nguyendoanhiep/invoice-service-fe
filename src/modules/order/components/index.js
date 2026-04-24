@@ -229,6 +229,7 @@ const Order = () => {
     const [params, setParams] = useState({
         page: 1,
         size: 10,
+        status: null,
         search: null,
         source: null,
         systemName: null,
@@ -324,6 +325,22 @@ const Order = () => {
                             toDate: isoString
                         }));
                     }}
+                />
+                <Select
+                    style={{width: 170}}
+                    placeholder={"Trạng thái"}
+                    options={[
+                        {value: 'INIT', label: 'Chưa xuất hoá đơn'},
+                        {value: 'FAIL', label: 'Thất bại'},
+                        {value: 'SUCCESS', label: 'Thành công'},
+                    ]}
+                    onChange={(value) => {
+                        setParams(prev => ({
+                            ...prev,
+                            status: value
+                        }));
+                    }}
+                    allowClear
                 />
                 <Select
                     style={{ width: 170 }}
