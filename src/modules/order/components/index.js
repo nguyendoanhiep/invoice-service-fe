@@ -1,12 +1,34 @@
-import {Button, Form, DatePicker, Input, Modal, Pagination, Table, Tag, Col, Row, Select} from "antd";
+import {
+    Button,
+    Form,
+    DatePicker,
+    Input,
+    Modal,
+    Pagination,
+    Table,
+    Tag,
+    Col,
+    Row,
+    Select,
+    Tabs,
+    InputNumber, Tooltip
+} from "antd";
 import {useDispatch, useSelector} from "react-redux";
 import React, {useEffect, useState} from "react";
 import dayjs from "dayjs";
 
 import {
     exportExcel, exportExcelFile,
-    getOrders, getSource, syncOrders, updateInFoBuyer,
+    getOrders, getSource, markIsSuccessFunc, syncOrders, updateInFoBuyer,
 } from "../service";
+import {
+    downloadInvoiceByDate,
+    downloadInvoiceByIds, failNotification,
+    invoiceHistory,
+    issueInvoiceByDate, issueInvoiceByIds,
+    publishViewInvoice, successNotification
+} from "../../invoice/service";
+import {getGigagoOrders, submitGigagoOrders} from "../../gigago-order/service";
 
 const {Search} = Input;
 
@@ -73,23 +95,6 @@ const Order = () => {
             )
         },
         {
-            title: 'Trạng Thái',
-            dataIndex: 'status',
-            key: 'status',
-            width: 120,
-            render: (value) => (
-                <span
-                    style={{
-                        textTransform: "uppercase",
-                        fontWeight: 500,
-                        fontSize: 15
-                    }}
-                >
-            {value}
-               </span>
-            )
-        },
-        {
             title: 'Trạng thái hoá đơn',
             dataIndex: 'publishInvoiceStatus',
             key: 'publishInvoiceStatus',
@@ -102,7 +107,8 @@ const Order = () => {
                             style={{
                                 fontSize: 14,
                                 padding: "4px 8px",
-                                lineHeight: "20px"}}
+                                lineHeight: "20px"
+                            }}
                             color="green">Thành công</Tag>;
 
                     case "INIT":
@@ -110,7 +116,8 @@ const Order = () => {
                             style={{
                                 fontSize: 14,
                                 padding: "4px 8px",
-                                lineHeight: "20px"}}
+                                lineHeight: "20px"
+                            }}
                             color="blue">Chưa tạo hoá đơn</Tag>;
 
                     case "FAIL":
@@ -118,13 +125,32 @@ const Order = () => {
                             style={{
                                 fontSize: 14,
                                 padding: "4px 8px",
-                                lineHeight: "20px"}}
+                                lineHeight: "20px"
+                            }}
                             color="red">Thất bại</Tag>;
 
                     default:
                         return <Tag>Không xác định</Tag>;
                 }
             }
+        },
+        {
+            title: 'Mã hoá đơn',
+            dataIndex: 'transactionID',
+            key: 'transactionID',
+            align: "center",
+            width: 150,
+            render: (value) => (
+                <span
+                    style={{
+                        textTransform: "uppercase",
+                        fontWeight: 500,
+                        fontSize: 15
+                    }}
+                >
+            {value}
+        </span>
+            )
         },
         {
             title: 'Tổng tiền',
@@ -140,6 +166,42 @@ const Order = () => {
                     }}
                 >
             {value ? Number(value).toLocaleString("vi-VN") : "-"}
+               </span>
+            )
+        },
+        {
+            title: 'Giá gốc',
+            dataIndex: 'originalAmount',
+            key: 'originalAmount',
+            align: "center",
+            width: 130,
+            render: (value) => (
+                <span
+                    style={{
+                        textTransform: "uppercase",
+                        fontWeight: 500,
+                        fontSize: 15
+                    }}
+                >
+               {value ? Number(value).toLocaleString("vi-VN") : "-"}
+               </span>
+            )
+        },
+        {
+            title: 'Tổng VAT',
+            dataIndex: 'vatAmount',
+            key: 'vatAmount',
+            align: "center",
+            width: 130,
+            render: (value) => (
+                <span
+                    style={{
+                        textTransform: "uppercase",
+                        fontWeight: 500,
+                        fontSize: 15
+                    }}
+                >
+               {value ? Number(value).toLocaleString("vi-VN") : "-"}
                </span>
             )
         },
@@ -166,6 +228,24 @@ const Order = () => {
             )
         },
         {
+            title: 'Ngày xuất hoá đơn',
+            dataIndex: 'issueDateInvoice',
+            align: "center",
+            key: 'issueDateInvoice',
+            width: 160,
+            render: (value) => (
+                <span
+                    style={{
+                        textTransform: "uppercase",
+                        fontWeight: 500,
+                        fontSize: 15
+                    }}
+                >
+            {value ? dayjs(value).format('YYYY-MM-DD') : ''}
+        </span>
+            )
+        },
+        {
             title: 'Action',
             dataIndex: '',
             key: 'x',
@@ -173,10 +253,23 @@ const Order = () => {
             align: 'center',
             render: (text, record) => (
                 <span>
-                    <Button style={{margin: 2, width: 165}} type="primary"
-                            onClick={() => showBuyerInfo(record)}>Thông tin người mua</Button>
-                    <Button style={{margin: 2, width: 165}} type="primary"
-                            onClick={() => showListProduct(record)} danger>Danh sách sản phầm</Button>
+                    <Button style={{margin: 2, width: 170}} type="primary"
+                            disabled={record.transactionID == null}
+                            onClick={() => publishView(record)}>Xem hoá đơn</Button>
+                    <Button style={{margin: 2, width: 170}} type="primary"
+                            onClick={() => {
+                                showBuyerInfo(record)
+                                dispatch(invoiceHistory({orderId: record.id}))
+                                dispatch(getGigagoOrders({
+                                    page: 1,
+                                    size: 9999,
+                                    keyword: record.id,
+                                    fromDate: null,
+                                    toDate: null,
+                                }))
+                            }}>Thông tin chi tiết</Button>
+                    <Button style={{margin: 2, width: 170}} type="primary"
+                            onClick={() => markIsSuccess(record.id)} disabled={record.transactionID !== null}>Xuất hoá đơn bên ngoài</Button>
 
                 </span>
             ),
@@ -187,6 +280,124 @@ const Order = () => {
         const item = metaData.find(m => m.key === key);
         return item?.display_value || '';
     };
+
+    const columnsGigagoOrder = [
+        {
+            title: "TT",
+            key: "index",
+            width: 55,
+            align: "center",
+            render: (_, __, index) =>
+                (params.page - 1) * params.size + index + 1
+        },
+        {
+            title: 'Trạng Thái',
+            dataIndex: 'statusName',
+            key: 'statusName',
+            width: 100,
+            align: "center"
+        },
+        {
+            title: 'iccid',
+            dataIndex: 'iccid',
+            key: 'iccid',
+            width: 150,
+            ellipsis: {
+                showTitle: false
+            },
+            render: (text) => (
+                <Tooltip title={text}>
+                    <span>{text}</span>
+                </Tooltip>
+            )
+        },
+        {
+            title: 'Số lượng',
+            dataIndex: 'quantity',
+            key: 'quantity',
+            width: 80
+        },
+        {
+            title: 'Đơn giá ',
+            dataIndex: 'price',
+            key: 'price',
+            width: 120
+        },
+
+        {
+            title: 'gggPlanId ',
+            dataIndex: 'gggPlanId',
+            key: 'gggPlanId',
+            width: 120
+        },
+
+        {
+            title: 'Ngày đặt hàng',
+            dataIndex: 'orderDate',
+            key: 'orderDate',
+            width: 120,
+            render: (value) => (
+                <span>
+            {value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : ''}
+        </span>
+            )
+        },
+        {
+            title: 'Action',
+            dataIndex: '',
+            key: 'x',
+            fixed: 'right',
+            align: 'center',
+            render: (text, record) => (
+                <span>
+                    <Button style={{margin: 5, width: 80}} type="primary"
+                            hidden={record.iccid != null}
+                            onClick={async () => await submitGigagoOrder(record)}>Đặt hàng</Button>
+                     <a  hidden={record.iccid === null}
+                         href={`https://agency.gigago.dev/my-esims?from=2026-07-28&to=2026-07-30&p=1&ps=10&iccid=${record.iccid}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                     >
+                    Xem đơn hàng</a>
+                </span>
+            ),
+            width: 120
+        }
+    ];
+
+
+    const columnsInvoiceItems = [
+        {title: 'Id đơn hàng ', dataIndex: 'refID', key: 'refID'},
+        {title: 'Mã hoá đơn', dataIndex: 'transactionID', key: 'transactionID'},
+        {
+            title: 'Ngày Misa ghi nhận', dataIndex: 'invDate', key: 'invDate',
+            render: (value) => (
+                <span
+                    style={{
+                        fontWeight: 500,
+                        fontSize: 15
+                    }}
+                >
+            {value ? dayjs(value).format("DD/MM/YYYY") : ""}
+        </span>
+            )
+        },
+        {title: 'Mã lỗi', dataIndex: 'errorCode', key: 'errorCode'},
+        {title: 'Chi tiết mã lỗi', dataIndex: 'descriptionErrorCode', key: 'descriptionErrorCode'},
+        {
+            title: 'Thời gian tạo', dataIndex: 'createdDate', key: 'createdDate',
+            render: (value) => (
+                <span
+                    style={{
+                        fontWeight: 500,
+                        fontSize: 15
+                    }}
+                >
+            {value ? dayjs(value).format("DD/MM/YYYY HH:mm:ss") : ""}
+        </span>
+            )
+        },
+    ];
     const columnsItems = [
         {title: 'Name', dataIndex: 'name', key: 'name'},
         {
@@ -209,9 +420,10 @@ const Order = () => {
     const dispatch = useDispatch();
     const [billingForm] = Form.useForm();
     const [isLoading, setIsLoading] = useState(false)
+    const publishInvoiceItem = useSelector((state) => state.order.invoiceHistory);
+    const gigagoOrders = useSelector((state) => state.gigagoOrder.gigagoOrders);
 
-    const [isShowBilling, setIsShowBilling] = useState(false)
-    const [isShowLineItems, setIsShowLineItems] = useState(false)
+    const [isShowDetail, setIsShowDetail] = useState(false)
     const orderList = useSelector((state) => state.order.orders);
     const [lineItems, setLineItems] = useState([]);
     const [source, setSource] = useState([]);
@@ -219,8 +431,41 @@ const Order = () => {
         .subtract(7, "day")
         .startOf("day")
         .format("YYYY-MM-DDTHH:mm:ss");
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+    const [transIds, setTransIds] = useState([]);
+
+    const rowSelection = {
+        selectedRowKeys,
+        onChange: (newSelectedRowKeys, selectedRows) => {
+            setSelectedRowKeys(newSelectedRowKeys);
+            setTransIds(selectedRows.map(row => row.transactionID))
+        },
+    };
 
 
+    const submitGigagoOrder = async (record) => {
+        console.log(record);
+        const res = await submitGigagoOrders({requestId: record.requestId})
+        console.log(res)
+        if (res.data.data === true) {
+            successNotification("Thành công")
+            dispatch(getGigagoOrders({
+                page: 1,
+                size: 9999,
+                keyword: record.sapoOrderId,
+                fromDate: null,
+                toDate: null,
+            }))
+        } else {
+            failNotification("Thất bại , vui lòng liên hệ admin")
+        }
+    };
+
+
+    const publishView = async (info) => {
+        await publishViewInvoice({transId: info.transactionID});
+
+    };
     const defaultToDate = dayjs()
         .endOf("day")
         .format("YYYY-MM-DDTHH:mm:ss");
@@ -236,29 +481,65 @@ const Order = () => {
         fromDate: defaultFromDate,
         toDate: defaultToDate,
     });
+    const [sourceName, setSourceName] = useState(defaultFromDate);
+    const markIsSuccess = (id) => {
+        let selectedDate = dayjs().format("YYYY-MM-DD");
+        let vat = 0;
+        Modal.confirm({
+            title: "Xác nhận đánh đấu đơn hàng",
+            content: (
+                <div>
+                    <p>
+                        Bạn có chắc chắn muốn đánh dấu đơn hàng này đã xuất hóa đơn trực bên ngoài không?
+                    </p>
+                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                        <h6>Nhập số tiền VAT:</h6>
+                        <Input style={{width: "150px"}}
+                               onChange={(e) => {
+                                   vat = e.target.value;
+                               }}/>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                        <h6>Nhập ngày:</h6>
+                        <DatePicker
+                            style={{width: "150px"}}
+                            defaultValue={dayjs(selectedDate)}
+                            onChange={(date) => {
+                                selectedDate = date.format("YYYY-MM-DD");
+                            }}
+                        />
+                    </div>
+                </div>
+            ), okText: "Xác nhận",
+            cancelText: "Huỷ",
+            okType: "primary",
+            async onOk() {
+                await dispatch(markIsSuccessFunc({id: id, date: selectedDate, vat: vat}));
+                setIsLoading(!isLoading)
+            }
+        })
+    }
 
     const showBuyerInfo = (info) => {
         // Set giá trị vào form
-        setIsShowBilling(true)
+        setSourceName(info.source)
+        setIsShowDetail(true)
+        setLineItems(JSON.parse(info.lineItems));
         billingForm.setFieldsValue(info);
     };
-    const showListProduct = (info) => {
-        setLineItems(JSON.parse(info.lineItems));
-        console.log(JSON.parse(info.lineItems))
-        setIsShowLineItems(true)
-    }
 
     const onSearch = (value) => {
         const newParams = {
             ...params,
             page: 1,
             size: 10,
-            search: value.trim() === "" ? null : value.trim()}
+            search: value.trim() === "" ? null : value.trim()
+        }
         setParams(newParams)
         dispatch(getOrders(newParams))
     }
     useEffect(async () => {
-       const sourceRes = await dispatch(getSource())
+        const sourceRes = await dispatch(getSource())
         setSource(sourceRes.map(item => item.name));
     }, [isLoading])
 
@@ -283,7 +564,7 @@ const Order = () => {
     const exportExcel = async () => {
         Modal.confirm({
             title: "Xác nhận export file excel",
-            content: `Bạn có chắc chắn muốn export file Excel từ ngày ${dayjs(params.fromDate).format("DD/MM/YYYY")} đến ngày ${dayjs(params.toDate).format("DD/MM/YYYY")} đã chọn ?, vui lòng chọn ít hơn 10 ngày để tránh quá tải !`,
+            content: `Bạn có chắc chắn muốn export file Excel từ ngày ${dayjs(params.fromDate).format("DD/MM/YYYY")} đến ngày ${dayjs(params.toDate).format("DD/MM/YYYY")} đã chọn ?`,
             okText: "Xác nhận",
             cancelText: "Huỷ",
             okType: "primary",
@@ -293,6 +574,45 @@ const Order = () => {
             }
         })
     }
+
+    const downloadInvoice = () => {
+        Modal.confirm({
+            title: "Xác nhận tải hoá đơn",
+            content: selectedRowKeys && selectedRowKeys.length > 0
+                ? `Bạn có chắc chắn muốn tải hoá đơn cho ${selectedRowKeys.length} đơn hàng đã chọn?`
+                : `Bạn có chắc chắn muốn tải hoá đơn từ ngày ${dayjs(params.fromDate).format("DD/MM/YYYY")} đến ngày ${dayjs(params.toDate).format("DD/MM/YYYY")} đã chọn?`,
+            okText: "Xác nhận",
+            cancelText: "Huỷ",
+            okType: "primary",
+            async onOk() {
+                if (transIds == null || transIds.length === 0) {
+                    await downloadInvoiceByDate(params)
+                } else {
+                    await downloadInvoiceByIds(transIds)
+                }
+            }
+        })
+    }
+    const issueInvoice = () => {
+        Modal.confirm({
+            title: "Xác nhận xuất hoá đơn",
+            content: selectedRowKeys && selectedRowKeys.length > 0
+                ? `Bạn có chắc chắn muốn xuất hoá đơn cho ${selectedRowKeys.length} đơn hàng đã chọn?`
+                : `Bạn có chắc chắn muốn xuất hoá đơn từ ngày ${dayjs(params.fromDate).format("DD/MM/YYYY")} đến ngày ${dayjs(params.toDate).format("DD/MM/YYYY")} đã chọn?`,
+            okText: "Xác nhận",
+            cancelText: "Huỷ",
+            okType: "primary",
+            async onOk() {
+                if (!selectedRowKeys || selectedRowKeys.length === 0) {
+                    await dispatch(issueInvoiceByDate(params));
+                } else {
+                    await dispatch(issueInvoiceByIds(selectedRowKeys));
+                }
+                setIsLoading(prev => !prev);
+            }
+        });
+    };
+
     return (
         <div style={{position: 'relative'}}>
             <div>
@@ -343,7 +663,7 @@ const Order = () => {
                     allowClear
                 />
                 <Select
-                    style={{ width: 170 }}
+                    style={{width: 170}}
                     placeholder={"Nguồn"}
                     options={source?.map(item => ({
                         value: item,
@@ -358,10 +678,10 @@ const Order = () => {
                     allowClear
                 />
                 <Select
-                    style={{ width: 160 }}
+                    style={{width: 160}}
                     placeholder={"Hệ thống"}
                     options={[
-                        { value: 'HUGO_SIM', label: 'HUGO_SIM' },
+                        {value: 'HUGO_SIM', label: 'HUGO_SIM'},
                     ]}
                     onChange={(value) => {
                         setParams(prev => ({
@@ -386,16 +706,17 @@ const Order = () => {
                 justifyContent: ' space-between'
             }}>
                 <div style={{marginBottom: 20}}>
-                    <Button onClick={sync} type="primary">Đồng bộ đơn hàng</Button>
-                </div>
-                <div style={{marginBottom: 20}}>
-                    <Button onClick={exportExcel} danger>Xuất File Excel từ Website </Button>
+                    <Button style={{margin: 5, width: 140}} onClick={sync} danger>Đồng bộ đơn hàng</Button>
+                    <Button style={{margin: 5, width: 140}} onClick={exportExcel} danger>Export Excel </Button>
+                    <Button style={{margin: 5, width: 140}} onClick={issueInvoice} danger>Xuất Hoá Đơn</Button>
+                    <Button style={{margin: 5, width: 140}} onClick={downloadInvoice} danger>Tải hoá đơn</Button>
                 </div>
             </div>
             <Table
                 rowKey={record => record.id}
                 columns={columns}
                 dataSource={orderList.content}
+                rowSelection={rowSelection}   // 👈 thêm dòng này
                 bordered
                 pagination={false}
                 style={{
@@ -425,98 +746,195 @@ const Order = () => {
                     margin: 15,
                     alignSelf: 'flex-end'
                 }}/>
-            <Modal title={"Thông tin chi tiết người mua hàng"}
-                   open={isShowBilling}
-                   onCancel={() => {
-                       setIsShowBilling(false)
-                       billingForm.resetFields()
-                   }}
-                   footer={null}>
-                <Form
-                    form={billingForm}
-                    name="billingForm"
-                    labelCol={{span: 8}}
-                    wrapperCol={{span: 18}}
-                >
-                    <Form.Item
-                        name="id"
-                        hidden={true}>
-                    </Form.Item>
-                    <Form.Item
-                        label="Full name : "
-                        name="fullNameBuyer">
-                        <Input
-                            style={{width: 300}}
-                            type="text"
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        label="Phone : "
-                        name="numberPhoneBuyer"
-                    >
-                        <Input
-                            style={{width: 300}}
-                            type="text"
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        label="Email : "
-                        name="emailBuyer">
-                        <Input
-                            style={{width: 300}}
-                            type="text"
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        label="Address : "
-                        name="addressBuyer">
-                        <Input
-                            style={{width: 300}}
-                            type="text"
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        wrapperCol={{
-                            offset: 12,
-                            span: 16,
-                        }}>
-                        <Button
-                            htmlType="button"
-                            type="primary"
-                            style={{margin: 5}}
-                            onClick={async () => {
-                                await dispatch(updateInFoBuyer(billingForm.getFieldsValue()))
-                                billingForm.resetFields()
-                                setIsShowBilling(false)
-                                setIsLoading(!isLoading)
-                            }}>
-                            Update Info
-                        </Button>
-                        <Button
-                            htmlType="button"
-                            style={{margin: 5}}
-                            onClick={() => {
-                                billingForm.resetFields()
-                                setIsShowBilling(false)
-                            }}>
-                            Cancel
-                        </Button>
-                    </Form.Item>
-                </Form>
-            </Modal>
-            <Modal title={"Danh sách sản phẩm"}
-                   open={isShowLineItems}
-                   onCancel={() => {
-                       setIsShowLineItems(false)
-                       setLineItems(null);
-                   }}
-                   width={800}
-                   footer={null}>
-                <Table
-                    dataSource={lineItems}
-                    columns={columnsItems}
-                    rowKey="id"
-                    pagination={false}
+
+            <Modal
+                title="Chi tiết đơn hàng"
+                open={isShowDetail}
+                onCancel={() => setIsShowDetail(false)}
+                width={1000}
+                footer={null}
+            >
+                <Tabs
+                    defaultActiveKey="customer"
+                    items={[
+                        {
+                            key: 'customer',
+                            label: 'Thông tin khách hàng',
+                            children: (
+                                <Form
+                                    form={billingForm}
+                                    name="billingForm"
+                                >
+                                    <Form.Item name="id" hidden/>
+
+                                    <Row gutter={24}>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Full name"
+                                                name="fullNameBuyer"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <Input/>
+                                            </Form.Item>
+                                        </Col>
+
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Phone"
+                                                name="numberPhoneBuyer"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <Input/>
+                                            </Form.Item>
+                                        </Col>
+
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Email"
+                                                name="emailBuyer"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <Input/>
+                                            </Form.Item>
+                                        </Col>
+
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Address"
+                                                name="addressBuyer"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <Input/>
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Tổng tiền"
+                                                name="total"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <InputNumber
+                                                    style={{width: '100%'}}
+                                                    readOnly
+                                                    controls={false}
+                                                    formatter={(value) =>
+                                                        value ? Number(value).toLocaleString('vi-VN') : ''
+                                                    }
+                                                />
+                                            </Form.Item>
+                                        </Col>
+
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Mã hoá đơn"
+                                                name="transactionID"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <Input readOnly/>
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Tiền gốc"
+                                                name="originalAmount"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <InputNumber readOnly
+                                                             style={{width: '100%'}}
+                                                             formatter={(value) =>
+                                                                 value ? Number(value).toLocaleString('vi-VN') : ''
+                                                             }/>
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Tiền thuế VAT"
+                                                name="vatAmount"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <InputNumber readOnly
+                                                             style={{width: '100%'}}
+                                                             formatter={(value) =>
+                                                                 value ? Number(value).toLocaleString('vi-VN') : ''
+                                                             }/>
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item
+                                                label="Note"
+                                                name="note"
+                                                labelCol={{span: 8}}
+                                                wrapperCol={{span: 16}}
+                                            >
+                                                <Input.TextArea rows={3}/>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+
+                                    <Form.Item style={{textAlign: 'center'}}>
+                                        <Button htmlType="button" type="primary" style={{margin: 5}}
+                                                onClick={async () => {
+                                                    await dispatch(updateInFoBuyer(billingForm.getFieldsValue()))
+                                                    billingForm.resetFields()
+                                                    setIsShowDetail(false)
+                                                    setIsLoading(!isLoading)
+                                                }}> Update Info </Button>
+                                        <Button htmlType="button" style={{margin: 5}}
+                                                onClick={() => {
+                                                    billingForm.resetFields()
+                                                    setIsShowDetail(false)
+                                                }}> Cancel </Button>
+                                    </Form.Item>
+                                </Form>
+                            ),
+                        },
+                        {
+                            key: 'invoices',
+                            label: 'Lịch sử hóa đơn',
+                            children: (
+                                <Table
+                                    dataSource={publishInvoiceItem}
+                                    columns={columnsInvoiceItems}
+                                    rowKey="id"
+                                    pagination={false}
+                                />
+                            ),
+                        },
+                        {
+                            key: 'products',
+                            label: 'Sản phẩm',
+                            children: (
+                                <Table
+                                    dataSource={lineItems}
+                                    columns={columnsItems}
+                                    rowKey="id"
+                                    pagination={false}
+                                />
+                            ),
+                        },
+                        ...(sourceName !== 'WEBSITE'
+                            ? [{
+                                key: 'gigagoOrder',
+                                label: 'Thông tin gigago orders',
+                                children: (
+                                    <Table
+                                        dataSource={gigagoOrders.content}
+                                        columns={columnsGigagoOrder}
+                                        rowKey="id"
+                                        pagination={false}
+                                    />
+                                ),
+                            }]
+                            : [])
+                    ]}
                 />
             </Modal>
         </div>

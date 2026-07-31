@@ -2,10 +2,10 @@ import {createSlice} from "@reduxjs/toolkit";
 
 const invoiceSlice = createSlice({
     name: 'invoice',
-    initialState: {invoice: {}},
+    initialState: {invoices: {}},
     reducers: {
         getAll: (state, action) => {
-            state.products = action.payload.data;
+            state.invoices = action.payload.data;
         },
     },
 });

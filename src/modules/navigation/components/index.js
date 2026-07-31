@@ -27,8 +27,10 @@ const Navigation = () => {
         },
         getItem('Báo cáo', '/', <AreaChartOutlined style={{fontSize: 18}}/>),
         getItem('Quản lý Order', '/order', <OrderedListOutlined style={{fontSize: 18}}/>),
-        getItem('Quản lý Invoice', '/invoice', <ContainerOutlined style={{fontSize: 18}}/>),
-        getItem('Cấu hình Invoice', '/invoice-config', <SettingOutlined style={{fontSize: 18}}/>),
+        getItem('Quản lý Gigago Order', '/gigago-order', <OrderedListOutlined style={{fontSize: 18}}/>),
+        getItem('Quản lý Product', '/product', <OrderedListOutlined style={{fontSize: 18}}/>),
+        // getItem('Quản lý Invoice', '/invoice', <ContainerOutlined style={{fontSize: 18}}/>),
+        getItem('Cấu hình', '/invoice-config', <SettingOutlined style={{fontSize: 18}}/>),
         getItem('Quản lý History', '/history', <HddOutlined style={{fontSize: 18}}/>),
     ];
     const onClick = (item) => {

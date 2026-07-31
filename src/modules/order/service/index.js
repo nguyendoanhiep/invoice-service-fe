@@ -102,6 +102,16 @@ export const getReport = (params) => async (dispatch) => {
 
 };
 
+export const markIsSuccessFunc = (params) => async (dispatch) => {
+    const res = await api.post(`/order/mark-is-publish`, null,{params: params});
+    if (res.data.data) {
+        successNotification('Update thông tin đơn hàng thành công')
+    } else {
+        const message = res.data.message;
+        failNotification(message)
+    }
+};
+
 export const updateInFoBuyer = (data) => async (dispatch) => {
     const res = await api.post(`/order/update-info-buyer`, data);
     if (res.data.data) {

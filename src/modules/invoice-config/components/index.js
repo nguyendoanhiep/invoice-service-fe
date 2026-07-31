@@ -148,7 +148,7 @@ const InvoiceConfig = () => {
             <Table
                 rowKey={record => record.id}
                 columns={columns}
-                dataSource={source}
+                dataSource={source.filter(item => item.name !== "GIGAGO_ORDER")}
                 bordered
                 pagination={false}
                 style={{
