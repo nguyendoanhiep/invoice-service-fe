@@ -93,6 +93,7 @@ const GigagoOrder = () => {
             width: 130,
             render: (iccid) => (
                 <a
+                    hidden={!iccid}
                     href={`https://agency.gigago.dev/my-esims?from=2026-07-28&to=2026-07-30&p=1&ps=10&iccid=${iccid}`}
                     target="_blank"
                     rel="noopener noreferrer"

@@ -291,6 +291,13 @@ const Order = () => {
                 (params.page - 1) * params.size + index + 1
         },
         {
+            title: 'Sku',
+            dataIndex: 'sku',
+            key: 'sku',
+            width: 120,
+            align: "center"
+        },
+        {
             title: 'Trạng Thái',
             dataIndex: 'statusName',
             key: 'statusName',
@@ -316,12 +323,6 @@ const Order = () => {
             dataIndex: 'quantity',
             key: 'quantity',
             width: 80
-        },
-        {
-            title: 'Đơn giá ',
-            dataIndex: 'price',
-            key: 'price',
-            width: 120
         },
 
         {
@@ -350,11 +351,12 @@ const Order = () => {
             align: 'center',
             render: (text, record) => (
                 <span>
-                    <Button style={{margin: 5, width: 80}} type="primary"
+                    <Button style={{margin: 5, width: 100}} type="primary"
                             hidden={record.iccid != null}
+                            loading={submitting}
                             onClick={async () => await submitGigagoOrder(record)}>Đặt hàng</Button>
                      <a  hidden={record.iccid === null}
-                         href={`https://agency.gigago.dev/my-esims?from=2026-07-28&to=2026-07-30&p=1&ps=10&iccid=${record.iccid}`}
+                         href={`https://agency.gigago.dev/my-esims?p=1&ps=10&iccid=${record.iccid}`}
                          target="_blank"
                          rel="noopener noreferrer"
                      >
@@ -399,6 +401,7 @@ const Order = () => {
         },
     ];
     const columnsItems = [
+        {title: 'Sku', dataIndex: 'sku', key: 'sku'},
         {title: 'Name', dataIndex: 'name', key: 'name'},
         {
             title: 'Dung lượng',
@@ -442,22 +445,36 @@ const Order = () => {
         },
     };
 
+    const [submitting, setSubmitting] = useState(false);
 
     const submitGigagoOrder = async (record) => {
-        console.log(record);
-        const res = await submitGigagoOrders({requestId: record.requestId})
-        console.log(res)
-        if (res.data.data === true) {
-            successNotification("Thành công")
-            dispatch(getGigagoOrders({
-                page: 1,
-                size: 9999,
-                keyword: record.sapoOrderId,
-                fromDate: null,
-                toDate: null,
-            }))
-        } else {
-            failNotification("Thất bại , vui lòng liên hệ admin")
+        if (submitting) {
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+
+            const res = await submitGigagoOrders({
+                requestId: record.requestId
+            });
+
+            if (res.data.data === true) {
+                successNotification("Thành công");
+
+                dispatch(getGigagoOrders({
+                    page: 1,
+                    size: 9999,
+                    keyword: record.sapoOrderId,
+                    fromDate: null,
+                    toDate: null,
+                }));
+            } else {
+                const message = res.data.message || "Thất bại, vui lòng liên hệ admin";
+                failNotification(message);
+            }
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -547,7 +564,7 @@ const Order = () => {
         dispatch(getOrders(params))
     }, [isLoading])
 
-    const sync = async () => {
+    const sync = async (type) => {
         Modal.confirm({
             title: "Xác nhận đồng bộ hoá đơn hàng từ remote",
             content: `Bạn có chắc chắn muốn đồng bộ hoá đơn hàng từ ngày ${dayjs(params.fromDate).format("DD/MM/YYYY")} đến ngày ${dayjs(params.toDate).format("DD/MM/YYYY")} đã chọn ?, vui lòng chọn ít hơn 10 ngày để tránh quá tải !`,
@@ -555,7 +572,7 @@ const Order = () => {
             cancelText: "Huỷ",
             okType: "primary",
             async onOk() {
-                await dispatch(syncOrders({fromDate: fromDate, toDate: toDate}))
+                await dispatch(syncOrders({fromDate: fromDate, toDate: toDate , type:type}))
                 setIsLoading(!isLoading)
             }
         })
@@ -706,7 +723,8 @@ const Order = () => {
                 justifyContent: ' space-between'
             }}>
                 <div style={{marginBottom: 20}}>
-                    <Button style={{margin: 5, width: 140}} onClick={sync} danger>Đồng bộ đơn hàng</Button>
+                    <Button style={{margin: 5, width: 140}} onClick={() => sync("SAPO")} danger>Đồng bộ sapo</Button>
+                    <Button style={{margin: 5, width: 140}} onClick={() => sync("WEB")} danger>Đồng bộ web</Button>
                     <Button style={{margin: 5, width: 140}} onClick={exportExcel} danger>Export Excel </Button>
                     <Button style={{margin: 5, width: 140}} onClick={issueInvoice} danger>Xuất Hoá Đơn</Button>
                     <Button style={{margin: 5, width: 140}} onClick={downloadInvoice} danger>Tải hoá đơn</Button>
