@@ -11,7 +11,7 @@ import {
     Row,
     Select,
     Tabs,
-    InputNumber, Tooltip
+    InputNumber, Tooltip, Card, Space
 } from "antd";
 import {useDispatch, useSelector} from "react-redux";
 import React, {useEffect, useState} from "react";
@@ -28,7 +28,7 @@ import {
     issueInvoiceByDate, issueInvoiceByIds,
     publishViewInvoice, successNotification
 } from "../../invoice/service";
-import {getGigagoOrders, submitGigagoOrders} from "../../gigago-order/service";
+import {getGigagoOrders, refreshData, saveGigagoOrders, submitGigagoOrders} from "../../gigago-order/service";
 
 const {Search} = Input;
 
@@ -355,10 +355,22 @@ const Order = () => {
                             hidden={record.iccid != null}
                             loading={submitting}
                             onClick={async () => await submitGigagoOrder(record)}>Đặt hàng</Button>
-                     <a  hidden={record.iccid === null}
-                         href={`https://agency.gigago.dev/my-esims?p=1&ps=10&iccid=${record.iccid}`}
-                         target="_blank"
-                         rel="noopener noreferrer"
+                    <Button style={{margin: 5, width: 100}} type="primary"
+                            hidden={record.iccid !== null}
+                                              onClick={async () =>{
+                                                  await refreshData({requestId:record.requestId});
+                                                  await dispatch(getGigagoOrders({
+                                                      page: 1,
+                                                      size: 9999,
+                                                      keyword: record.sapoOrderId,
+                                                      fromDate: null,
+                                                      toDate: null,
+                                                  }));
+                                              }}>Refresh</Button>
+                     <a hidden={record.iccid === null}
+                        href={`https://agency.gigago.dev/my-esims?p=1&ps=10&iccid=${record.iccid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                      >
                     Xem đơn hàng</a>
                 </span>
@@ -572,7 +584,7 @@ const Order = () => {
             cancelText: "Huỷ",
             okType: "primary",
             async onOk() {
-                await dispatch(syncOrders({fromDate: fromDate, toDate: toDate , type:type}))
+                await dispatch(syncOrders({fromDate: fromDate, toDate: toDate, type: type}))
                 setIsLoading(!isLoading)
             }
         })
@@ -591,6 +603,23 @@ const Order = () => {
             }
         })
     }
+
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [gigagoForm] = Form.useForm();
+
+    const handleCreateGigagoOrder = async (values) => {
+        await saveGigagoOrders(values);
+        await dispatch(getGigagoOrders({
+            page: 1,
+            size: 9999,
+            keyword: values.sapoOrderId,
+            fromDate: null,
+            toDate: null,
+        }));
+        gigagoForm.resetFields();
+        setShowCreateForm(false);
+
+    };
 
     const downloadInvoice = () => {
         Modal.confirm({
@@ -943,12 +972,90 @@ const Order = () => {
                                 key: 'gigagoOrder',
                                 label: 'Thông tin gigago orders',
                                 children: (
-                                    <Table
-                                        dataSource={gigagoOrders.content}
-                                        columns={columnsGigagoOrder}
-                                        rowKey="id"
-                                        pagination={false}
-                                    />
+                                    <div>
+                                        <div
+                                            style={{
+                                                marginBottom: 16,
+                                                display: 'flex',
+                                                justifyContent: 'flex-end'
+                                            }}
+                                        >
+                                            <Button
+                                                type="primary"
+                                                onClick={() => {
+                                                    setShowCreateForm(!showCreateForm);
+                                                    gigagoForm.setFieldsValue({
+                                                        sapoOrderId: billingForm.getFieldValue("id"), // giá trị truyền vào
+                                                    });
+                                                }}
+                                            >
+                                                {showCreateForm ? 'Đóng' : 'Tạo thủ công'}
+                                            </Button>
+                                        </div>
+
+                                        {showCreateForm && (
+                                            <Card size="small" style={{marginBottom: 16}}>
+                                                <Form
+                                                    form={gigagoForm}
+                                                    layout="vertical"
+                                                    onFinish={handleCreateGigagoOrder}
+                                                >
+                                                    <Row gutter={16}>
+                                                        <Col span={7}>
+                                                            <Form.Item
+                                                                label="Sapo Order ID"
+                                                                name="sapoOrderId"
+                                                                rules={[{required: true}]}
+                                                            >
+                                                                <Input readOnly/>
+                                                            </Form.Item>
+                                                        </Col>
+
+                                                        <Col span={7}>
+                                                            <Form.Item
+                                                                label="ICCID"
+                                                                name="iccid"
+                                                                rules={[{required: true}]}
+                                                            >
+                                                                <Input/>
+                                                            </Form.Item>
+                                                        </Col>
+
+                                                        <Col span={6}>
+                                                            <Form.Item
+                                                                label="SKU"
+                                                                name="sku"
+                                                                rules={[{required: true}]}
+                                                            >
+                                                                <Input/>
+                                                            </Form.Item>
+                                                        </Col>
+                                                    </Row>
+
+                                                    <Space>
+                                                        <Button type="primary" htmlType="submit">
+                                                            Lưu
+                                                        </Button>
+
+                                                        <Button
+                                                            onClick={() => {
+                                                                gigagoForm.resetFields();
+                                                                setShowCreateForm(false);
+                                                            }}
+                                                        >
+                                                            Hủy
+                                                        </Button>
+                                                    </Space>
+                                                </Form>
+                                            </Card>
+                                        )}
+                                        <Table
+                                            dataSource={gigagoOrders.content}
+                                            columns={columnsGigagoOrder}
+                                            rowKey="id"
+                                            pagination={false}
+                                        />
+                                    </div>
                                 ),
                             }]
                             : [])

@@ -1,5 +1,5 @@
 import api from "../../../env/Config";
-import {failNotification} from "../../invoice/service";
+import {failNotification, successNotification} from "../../invoice/service";
 import {getAll} from "../redux";
 
 
@@ -15,8 +15,34 @@ export const getGigagoOrders = (params) => async (dispatch) => {
     }
 };
 
+export const refreshData = async (params) => {
+    try {
+        const response = await api.get(`/gigago-order/get-data-from-server`,{
+            params: params
+        });
+        successNotification("Refresh thành công")
+        return response.data;
+
+    } catch (error) {
+        console.log(error);
+        failNotification("Thất bại , vui lòng liên hệ admin")
+    }
+};
+
+
 export const submitGigagoOrders = async (params) => {
-    return api.post('/gigago-order', null, {
+    return await api.post('/gigago-order', null, {
         params
     });
+};
+
+export const saveGigagoOrders = async (body) => {
+    const response =await api.put('/gigago-order', body);
+    console.log(response);
+    if (response.data.code === '200') {
+        successNotification("Thành công")
+    }else {
+        failNotification("Thất bại , vui lòng liên hệ admin")
+    }
+    return response;
 };

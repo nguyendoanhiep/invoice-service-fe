@@ -62,6 +62,14 @@ const GigagoOrder = () => {
             key: 'quantity',
             width: 100
         },
+
+        {
+            title: 'Mã đơn hàng',
+            dataIndex: 'orderId',
+            key: 'orderId',
+            width: 120
+        },
+
         {
             title: 'Đơn giá ',
             dataIndex: 'price',
@@ -100,6 +108,7 @@ const GigagoOrder = () => {
                 >
                     Xem đơn hàng
                 </a>
+
             )
         }
     ];
