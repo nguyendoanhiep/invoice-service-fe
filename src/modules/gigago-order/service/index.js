@@ -15,6 +15,17 @@ export const getGigagoOrders = (params) => async (dispatch) => {
     }
 };
 
+export const getEndpoint = async () => {
+    try {
+        const response = await api.get(`/gigago-order/end-points`);
+        return response.data;
+
+    } catch (error) {
+        console.log(error);
+        failNotification("Thất bại , vui lòng liên hệ admin")
+    }
+};
+
 export const refreshData = async (params) => {
     try {
         const response = await api.get(`/gigago-order/get-data-from-server`,{

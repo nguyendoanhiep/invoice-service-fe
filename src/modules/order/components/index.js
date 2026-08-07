@@ -28,7 +28,13 @@ import {
     issueInvoiceByDate, issueInvoiceByIds,
     publishViewInvoice, successNotification
 } from "../../invoice/service";
-import {getGigagoOrders, refreshData, saveGigagoOrders, submitGigagoOrders} from "../../gigago-order/service";
+import {
+    getEndpoint,
+    getGigagoOrders,
+    refreshData,
+    saveGigagoOrders,
+    submitGigagoOrders
+} from "../../gigago-order/service";
 
 const {Search} = Input;
 
@@ -294,21 +300,21 @@ const Order = () => {
             title: 'Sku',
             dataIndex: 'sku',
             key: 'sku',
-            width: 120,
+            width: 150,
             align: "center"
         },
         {
             title: 'Trạng Thái',
             dataIndex: 'statusName',
             key: 'statusName',
-            width: 100,
+            width: 120,
             align: "center"
         },
         {
             title: 'iccid',
             dataIndex: 'iccid',
             key: 'iccid',
-            width: 150,
+            width: 180,
             ellipsis: {
                 showTitle: false
             },
@@ -329,14 +335,21 @@ const Order = () => {
             title: 'gggPlanId ',
             dataIndex: 'gggPlanId',
             key: 'gggPlanId',
-            width: 120
+            width: 150
+        },
+
+        {
+            title: 'Message phản hồi',
+            dataIndex: 'message',
+            key: 'message',
+            width: 200
         },
 
         {
             title: 'Ngày đặt hàng',
             dataIndex: 'orderDate',
             key: 'orderDate',
-            width: 120,
+            width: 150,
             render: (value) => (
                 <span>
             {value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : ''}
@@ -368,14 +381,13 @@ const Order = () => {
                                                   }));
                                               }}>Refresh</Button>
                      <a hidden={record.iccid === null}
-                        href={`https://agency.gigago.dev/my-esims?p=1&ps=10&iccid=${record.iccid}`}
-                        target="_blank"
+                        href={`${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`}                        target="_blank"
                         rel="noopener noreferrer"
                      >
                     Xem đơn hàng</a>
                 </span>
             ),
-            width: 120
+            width: 130
         }
     ];
 
@@ -567,9 +579,13 @@ const Order = () => {
         setParams(newParams)
         dispatch(getOrders(newParams))
     }
+    const [endpoint, setEndpoint] = useState('');
+
     useEffect(async () => {
         const sourceRes = await dispatch(getSource())
         setSource(sourceRes.map(item => item.name));
+        const response = await getEndpoint();
+        setEndpoint(response);
     }, [isLoading])
 
     useEffect(() => {
@@ -1054,6 +1070,12 @@ const Order = () => {
                                             columns={columnsGigagoOrder}
                                             rowKey="id"
                                             pagination={false}
+                                            style={{
+                                                minHeight: 200
+                                            }}
+                                            scroll={{
+                                                x: 800
+                                            }}
                                         />
                                     </div>
                                 ),

@@ -1,8 +1,8 @@
-import {Col, DatePicker, Pagination, Row, Select, Switch, Table, Tag, Tooltip} from "antd";
+import {Button, Col, DatePicker, Pagination, Row, Select, Switch, Table, Tag, Tooltip} from "antd";
 import dayjs from "dayjs";
 import React, {useEffect, useState} from "react";
 import {useDispatch, useSelector} from "react-redux";
-import {getGigagoOrders} from "../service";
+import {getEndpoint, getGigagoOrders, refreshData} from "../service";
 import Search from "antd/es/input/Search";
 import {getOrders, getSource, handleTogglePublish} from "../../order/service";
 
@@ -83,6 +83,13 @@ const GigagoOrder = () => {
             key: 'gggPlanId',
             width: 180
         },
+
+        {
+            title: 'Message phản hồi',
+            dataIndex: 'message',
+            key: 'message',
+            width: 200
+        },
         {
             title: 'Ngày đặt hàng',
             dataIndex: 'orderDate',
@@ -95,23 +102,32 @@ const GigagoOrder = () => {
             )
         },
         {
-            title: 'Link Gigago',
-            dataIndex: 'iccid',
-            key: 'iccid',
-            width: 130,
-            render: (iccid) => (
-                <a
-                    hidden={!iccid}
-                    href={`https://agency.gigago.dev/my-esims?from=2026-07-28&to=2026-07-30&p=1&ps=10&iccid=${iccid}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    Xem đơn hàng
-                </a>
-
-            )
+            title: 'Action',
+            dataIndex: '',
+            key: 'x',
+            fixed: 'right',
+            align: 'center',
+            render: (text, record) => (
+                <span>
+                    <Button style={{margin: 5, width: 100}} type="primary"
+                            hidden={record.iccid !== null}
+                            onClick={async () =>{
+                                await refreshData({requestId:record.requestId});
+                                setIsLoading(!isLoading)
+                            }}>Refresh</Button>
+                     <a hidden={record.iccid === null}
+                        href={`${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`}                        target="_blank"
+                        rel="noopener noreferrer"
+                     >
+                    Xem đơn hàng</a>
+                </span>
+            ),
+            width: 130
         }
     ];
+
+    const [endpoint, setEndpoint] = useState('');
+
     const defaultFromDate = dayjs()
         .subtract(30, "day")
         .startOf("day")
@@ -128,6 +144,7 @@ const GigagoOrder = () => {
         page: 1,
         size: 10,
         keyword: null,
+        status: null,
         fromDate: defaultFromDate,
         toDate: defaultToDate,
     });
@@ -157,6 +174,8 @@ const GigagoOrder = () => {
         const res = await dispatch(getSource())
         const gigagoSource = res.find(item => item.name === "GIGAGO_ORDER");
         setSource(gigagoSource)
+        const response = await getEndpoint();
+        setEndpoint(response);
     }, [isLoading])
     return (
         <div>
@@ -186,6 +205,21 @@ const GigagoOrder = () => {
                         setParams(prev => ({
                             ...prev,
                             toDate: isoString
+                        }));
+                    }}
+                />
+                <Select
+                    style={{ width: 170 }}
+                    placeholder="Trạng thái"
+                    allowClear
+                    options={[
+                        { label: 'Hoàn thành', value: 'Delivered' },
+                        { label: 'Chưa hoàn thành', value: 'Unfinished' },
+                    ]}
+                    onChange={(value) => {
+                        setParams(prev => ({
+                            ...prev,
+                            status: value
                         }));
                     }}
                 />
