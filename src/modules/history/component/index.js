@@ -132,9 +132,10 @@ const History = () => {
         toDate: defaultToDate,
     });
 
-    const onSearch = () => {
+    const onSearch = (value) => {
         const newParams = {
             ...params,
+            search: value,
             page: 1,
             size: 10
         }
@@ -186,9 +187,9 @@ const History = () => {
                     options={[
                         { value: 'SYNC_ORDERS_WEB', label: 'Đồng bộ hoá đơn hàng WEB' },
                         { value: 'SYNC_ORDERS_SAPO', label: 'Đồng bộ hoá đơn hàng SAPO' },
-                        { value: 'SYNC_ORDERS_AUTO', label: 'Đồng bộ đơn hàng tự động' },
                         { value: 'PUBLISH_INVOICE', label: 'Phát hành hoá đơn' },
                         { value: 'PUBLISH_INVOICE_AUTO', label: 'Phát hành hoá đơn tự động' },
+                        { value: 'DELETE_ORDER_GIGAGO', label: 'Xoá gigago ' },
                         { value: 'REFRESH_TOKEN_AUTO', label: 'Cập nhập token misa daily' },
                     ]}
                     onChange={(value) => {
@@ -214,8 +215,15 @@ const History = () => {
                     }}
                     allowClear
                 />
-                <Button style={{marginLeft : 5}} type="primary" onClick={onSearch}>Tìm kiếm</Button>
-
+                <Search
+                    placeholder="id invoice name phone email"
+                    allowClear
+                    style={{
+                        width: 270,
+                        marginLeft: 5
+                    }}
+                    onSearch={value => onSearch(value)}
+                />
             </div>
             <div style={{
                 display: 'flex',

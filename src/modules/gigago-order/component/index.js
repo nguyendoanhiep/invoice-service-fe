@@ -1,8 +1,8 @@
-import {Button, Col, DatePicker, Pagination, Row, Select, Switch, Table, Tag, Tooltip} from "antd";
+import {Button, Col, DatePicker, Pagination, Popconfirm, Row, Select, Switch, Table, Tag, Tooltip} from "antd";
 import dayjs from "dayjs";
 import React, {useEffect, useState} from "react";
 import {useDispatch, useSelector} from "react-redux";
-import {getEndpoint, getGigagoOrders, refreshData} from "../service";
+import {deleteGigagoOrders, getEndpoint, getGigagoOrders, refreshData} from "../service";
 import Search from "antd/es/input/Search";
 import {getOrders, getSource, handleTogglePublish} from "../../order/service";
 
@@ -109,20 +109,49 @@ const GigagoOrder = () => {
             align: 'center',
             render: (text, record) => (
                 <span>
-                    <Button style={{margin: 5, width: 100}} type="primary"
+                    <Button style={{marginRight: 1, width: 105}} type="primary"
                             hidden={record.iccid !== null}
-                            onClick={async () =>{
-                                await refreshData({requestId:record.requestId});
+                            onClick={async () => {
+                                await refreshData({requestId: record.requestId});
                                 setIsLoading(!isLoading)
                             }}>Refresh</Button>
-                     <a hidden={record.iccid === null}
-                        href={`${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`}                        target="_blank"
-                        rel="noopener noreferrer"
-                     >
-                    Xem đơn hàng</a>
+                    <Button
+                        hidden={record.iccid === null}
+                        style={{
+                            marginRight: 1,
+                            width: 105,
+                            backgroundColor: '#faad14',
+                            borderColor: '#faad14',
+                            color: '#fff'
+                        }}
+                        onClick={() =>
+                            window.open(
+                                `${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`,
+                                '_blank',
+                                'noopener,noreferrer'
+                            )
+                        }>Xem đơn hàng</Button>
+                    <Popconfirm
+                        title="Xóa Gigago Order"
+                        description="Bạn có chắc chắn muốn xóa bản ghi này không , lưu ý không thể hoàn tác?"
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        onConfirm={async () => {
+                            await deleteGigagoOrders(record.requestId)
+                            setIsLoading(!isLoading)
+                        }}
+                    >
+                      <Button
+                          style={{marginLeft: 1, width: 105}}
+                          type="primary"
+                          danger
+                      >
+                       Delete
+                      </Button>
+                    </Popconfirm>
                 </span>
             ),
-            width: 130
+            width: 234
         }
     ];
 
@@ -209,12 +238,12 @@ const GigagoOrder = () => {
                     }}
                 />
                 <Select
-                    style={{ width: 170 }}
+                    style={{width: 170}}
                     placeholder="Trạng thái"
                     allowClear
                     options={[
-                        { label: 'Hoàn thành', value: 'Delivered' },
-                        { label: 'Chưa hoàn thành', value: 'Unfinished' },
+                        {label: 'Hoàn thành', value: 'Delivered'},
+                        {label: 'Chưa hoàn thành', value: 'Unfinished'},
                     ]}
                     onChange={(value) => {
                         setParams(prev => ({

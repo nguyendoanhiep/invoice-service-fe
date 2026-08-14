@@ -11,14 +11,14 @@ import {
     Row,
     Select,
     Tabs,
-    InputNumber, Tooltip, Card, Space
+    InputNumber, Tooltip, Card, Space, Popconfirm
 } from "antd";
 import {useDispatch, useSelector} from "react-redux";
 import React, {useEffect, useState} from "react";
 import dayjs from "dayjs";
 
 import {
-    exportExcel, exportExcelFile,
+    exportExcelFile,
     getOrders, getSource, markIsSuccessFunc, syncOrders, updateInFoBuyer,
 } from "../service";
 import {
@@ -29,6 +29,7 @@ import {
     publishViewInvoice, successNotification
 } from "../../invoice/service";
 import {
+    deleteGigagoOrders,
     getEndpoint,
     getGigagoOrders,
     refreshData,
@@ -364,27 +365,62 @@ const Order = () => {
             align: 'center',
             render: (text, record) => (
                 <span>
-                    <Button style={{margin: 5, width: 100}} type="primary"
+                    <Button style={{margin: 5, width: 105}} type="primary"
                             hidden={record.iccid != null}
                             loading={submitting}
                             onClick={async () => await submitGigagoOrder(record)}>Đặt hàng</Button>
                     <Button style={{margin: 5, width: 100}} type="primary"
                             hidden={record.iccid !== null}
-                                              onClick={async () =>{
-                                                  await refreshData({requestId:record.requestId});
-                                                  await dispatch(getGigagoOrders({
-                                                      page: 1,
-                                                      size: 9999,
-                                                      keyword: record.sapoOrderId,
-                                                      fromDate: null,
-                                                      toDate: null,
-                                                  }));
-                                              }}>Refresh</Button>
-                     <a hidden={record.iccid === null}
-                        href={`${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`}                        target="_blank"
-                        rel="noopener noreferrer"
-                     >
-                    Xem đơn hàng</a>
+                            onClick={async () => {
+                                await refreshData({requestId: record.requestId});
+                                await dispatch(getGigagoOrders({
+                                    page: 1,
+                                    size: 9999,
+                                    keyword: record.sapoOrderId,
+                                    fromDate: null,
+                                    toDate: null,
+                                }));
+                            }}>Refresh</Button>
+                    <Popconfirm
+                        title="Xóa Gigago Order"
+                        description="Bạn có chắc chắn muốn xóa bản ghi này không , lưu ý không thể hoàn tác?"
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        onConfirm={async () => {
+                            await deleteGigagoOrders(record.requestId)
+                            await dispatch(getGigagoOrders({
+                                page: 1,
+                                size: 9999,
+                                keyword: record.sapoOrderId,
+                                fromDate: null,
+                                toDate: null,
+                            }));
+                        }}
+                    >
+                      <Button
+                          style={{margin: 1, width: 105}}
+                          type="primary"
+                          danger
+                      >
+                       Delete
+                      </Button>
+                    </Popconfirm>
+                    <Button
+                        hidden={record.iccid === null}
+                        style={{
+                            margin: 1,
+                            width: 105,
+                            backgroundColor: '#faad14',
+                            borderColor: '#faad14',
+                            color: '#fff'
+                        }}
+                        onClick={() =>
+                            window.open(
+                                `${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`,
+                                '_blank',
+                                'noopener,noreferrer'
+                            )
+                        }>Xem đơn hàng</Button>
                 </span>
             ),
             width: 130
@@ -624,7 +660,14 @@ const Order = () => {
     const [gigagoForm] = Form.useForm();
 
     const handleCreateGigagoOrder = async (values) => {
-        await saveGigagoOrders(values);
+        const response = await saveGigagoOrders(values);
+        if (response.data.code === '200') {
+            successNotification("Thành công")
+            gigagoForm.resetFields();
+            setShowCreateForm(false);
+        } else {
+            failNotification(response.data.message)
+        }
         await dispatch(getGigagoOrders({
             page: 1,
             size: 9999,
@@ -632,8 +675,7 @@ const Order = () => {
             fromDate: null,
             toDate: null,
         }));
-        gigagoForm.resetFields();
-        setShowCreateForm(false);
+
 
     };
 
@@ -813,7 +855,13 @@ const Order = () => {
             <Modal
                 title="Chi tiết đơn hàng"
                 open={isShowDetail}
-                onCancel={() => setIsShowDetail(false)}
+                onCancel={() => {
+                    gigagoForm.resetFields()
+                    setShowCreateForm(false)
+                    setIsShowDetail(false)
+                }
+
+                }
                 width={1000}
                 footer={null}
             >
@@ -1026,7 +1074,21 @@ const Order = () => {
                                                                 <Input readOnly/>
                                                             </Form.Item>
                                                         </Col>
-
+                                                        <Col span={7}>
+                                                            <Form.Item
+                                                                label="SKU"
+                                                                name="sku"
+                                                                rules={[{required: true}]}
+                                                            >
+                                                                <Select
+                                                                    placeholder="Chọn SKU"
+                                                                    options={lineItems.map(item => ({
+                                                                        label: item.sku,
+                                                                        value: item.sku,
+                                                                    }))}
+                                                                />
+                                                            </Form.Item>
+                                                        </Col>
                                                         <Col span={7}>
                                                             <Form.Item
                                                                 label="ICCID"
@@ -1037,15 +1099,6 @@ const Order = () => {
                                                             </Form.Item>
                                                         </Col>
 
-                                                        <Col span={6}>
-                                                            <Form.Item
-                                                                label="SKU"
-                                                                name="sku"
-                                                                rules={[{required: true}]}
-                                                            >
-                                                                <Input/>
-                                                            </Form.Item>
-                                                        </Col>
                                                     </Row>
 
                                                     <Space>

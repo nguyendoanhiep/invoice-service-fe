@@ -48,8 +48,11 @@ export const submitGigagoOrders = async (params) => {
 };
 
 export const saveGigagoOrders = async (body) => {
-    const response =await api.put('/gigago-order', body);
-    console.log(response);
+    return await api.put('/gigago-order', body);
+};
+
+export const deleteGigagoOrders = async (requestId) => {
+    const response =await api.delete('/gigago-order/'+requestId);
     if (response.data.code === '200') {
         successNotification("Thành công")
     }else {
