@@ -109,8 +109,7 @@ const GigagoOrder = () => {
             align: 'center',
             render: (text, record) => (
                 <span>
-                    <Button style={{marginRight: 1, width: 105}} type="primary"
-                            hidden={record.iccid !== null}
+                    <Button style={{margin: 2, width: 105}} type="primary"
                             onClick={async () => {
                                 await refreshData({requestId: record.requestId});
                                 setIsLoading(!isLoading)
@@ -118,7 +117,7 @@ const GigagoOrder = () => {
                     <Button
                         hidden={record.iccid === null}
                         style={{
-                            marginRight: 1,
+                            margin: 2,
                             width: 105,
                             backgroundColor: '#faad14',
                             borderColor: '#faad14',
@@ -126,7 +125,7 @@ const GigagoOrder = () => {
                         }}
                         onClick={() =>
                             window.open(
-                                `${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`,
+                                `${endpoint}/my-esims?p=1&ps=10&order_id=${record.orderId}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`,
                                 '_blank',
                                 'noopener,noreferrer'
                             )
@@ -142,7 +141,7 @@ const GigagoOrder = () => {
                         }}
                     >
                       <Button
-                          style={{marginLeft: 1, width: 105}}
+                          style={{margin: 2, width: 105}}
                           type="primary"
                           danger
                       >
@@ -151,7 +150,7 @@ const GigagoOrder = () => {
                     </Popconfirm>
                 </span>
             ),
-            width: 234
+            width: 150
         }
     ];
 

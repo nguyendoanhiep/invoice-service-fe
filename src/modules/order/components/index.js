@@ -312,10 +312,17 @@ const Order = () => {
             align: "center"
         },
         {
+            title: 'Mã đơn hàng',
+            dataIndex: 'orderId',
+            key: 'orderId',
+            width: 140,
+            align: "center"
+        },
+        {
             title: 'iccid',
             dataIndex: 'iccid',
             key: 'iccid',
-            width: 180,
+            width: 210,
             ellipsis: {
                 showTitle: false
             },
@@ -365,12 +372,11 @@ const Order = () => {
             align: 'center',
             render: (text, record) => (
                 <span>
-                    <Button style={{margin: 5, width: 105}} type="primary"
-                            hidden={record.iccid != null}
+                    <Button style={{margin: 2, width: 105}} type="primary"
+                            hidden={record.orderId != null}
                             loading={submitting}
                             onClick={async () => await submitGigagoOrder(record)}>Đặt hàng</Button>
-                    <Button style={{margin: 5, width: 100}} type="primary"
-                            hidden={record.iccid !== null}
+                    <Button style={{margin: 2, width: 100}} type="primary"
                             onClick={async () => {
                                 await refreshData({requestId: record.requestId});
                                 await dispatch(getGigagoOrders({
@@ -381,34 +387,10 @@ const Order = () => {
                                     toDate: null,
                                 }));
                             }}>Refresh</Button>
-                    <Popconfirm
-                        title="Xóa Gigago Order"
-                        description="Bạn có chắc chắn muốn xóa bản ghi này không , lưu ý không thể hoàn tác?"
-                        okText="Xóa"
-                        cancelText="Hủy"
-                        onConfirm={async () => {
-                            await deleteGigagoOrders(record.requestId)
-                            await dispatch(getGigagoOrders({
-                                page: 1,
-                                size: 9999,
-                                keyword: record.sapoOrderId,
-                                fromDate: null,
-                                toDate: null,
-                            }));
-                        }}
-                    >
-                      <Button
-                          style={{margin: 1, width: 105}}
-                          type="primary"
-                          danger
-                      >
-                       Delete
-                      </Button>
-                    </Popconfirm>
                     <Button
                         hidden={record.iccid === null}
                         style={{
-                            margin: 1,
+                            margin: 2,
                             width: 105,
                             backgroundColor: '#faad14',
                             borderColor: '#faad14',
@@ -416,11 +398,35 @@ const Order = () => {
                         }}
                         onClick={() =>
                             window.open(
-                                `${endpoint}/my-esims?p=1&ps=10&iccid=${record.iccid}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`,
+                                `${endpoint}/my-esims?p=1&ps=10&order_id=${record.orderId}&from=${dayjs(record.orderDate).format('YYYY-MM-DD')}`,
                                 '_blank',
                                 'noopener,noreferrer'
                             )
                         }>Xem đơn hàng</Button>
+                                        <Popconfirm
+                                            title="Xóa Gigago Order"
+                                            description="Bạn có chắc chắn muốn xóa bản ghi này không , lưu ý không thể hoàn tác?"
+                                            okText="Xóa"
+                                            cancelText="Hủy"
+                                            onConfirm={async () => {
+                                                await deleteGigagoOrders(record.requestId)
+                                                await dispatch(getGigagoOrders({
+                                                    page: 1,
+                                                    size: 9999,
+                                                    keyword: record.sapoOrderId,
+                                                    fromDate: null,
+                                                    toDate: null,
+                                                }));
+                                            }}
+                                        >
+                      <Button
+                          style={{margin: 2, width: 105}}
+                          type="primary"
+                          danger
+                      >
+                       Delete
+                      </Button>
+                    </Popconfirm>
                 </span>
             ),
             width: 130
